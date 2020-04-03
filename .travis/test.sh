@@ -1,7 +1,7 @@
 #!/bin/sh -ex
 
 rm -rf ovs
-git clone --depth 1 https://github.com/openvswitch/ovs.git
+git clone --depth 1 -b branch-2.12 https://github.com/openvswitch/ovs.git
 cd ovs
 ./boot.sh && ./configure --enable-silent-rules
 make -j4
@@ -105,9 +105,12 @@ The backup database file is sandbox/${db}2.db
 }
 
 ovn_start_db nb standalone 1 $srcdir/ovn/ovn-nb.ovsschema
+ovn_start_db sb standalone 1 $srcdir/ovn/ovn-sb.ovsschema
 export GO111MODULE=on
 cd ../
 go get -v ./...
 go test -v
+
+
 pkill ovsdb-server
 rm -rf ovs

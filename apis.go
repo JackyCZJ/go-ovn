@@ -29,7 +29,7 @@ type OvnCommand struct {
 
 // Execute sends command to ovnnb
 func (ocmd *OvnCommand) Execute() error {
-	return ocmd.Exe.Execute()
+	return ocmd.Exe.Execute(ocmd)
 }
 
 // Execution executes multiple ovnnb commands
@@ -75,9 +75,20 @@ type OVNSignal interface {
 
 	onMeterBandCreate(band *MeterBand)
 	onMeterBandDelete(band *MeterBand)
+<<<<<<< HEAD
+=======
+
+	// Create/delete chassis from south bound db
+	onChassisCreate(ch *Chassis)
+	onChassisDelete(ch *Chassis)
+
+	// Create/delete encap from south bound db
+	onEncapCreate(ch *Encap)
+	onEncapDelete(ch *Encap)
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 }
 
-// OVNNotifier ovnnb notifier
+// OVNNotifier ovnnb and ovnsb notifier
 type OVNNotifier interface {
 	Update(context interface{}, tableUpdates libovsdb.TableUpdates)
 	Locked([]interface{})

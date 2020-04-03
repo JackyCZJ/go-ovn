@@ -46,10 +46,14 @@ func init() {
 
 func main() {
 
+	// execute a ovnCommand by either of the following two methods :
+	// 1) ovndbapi.Execute(specificCommand)
+	// 2) specificCommand.Execute()
+
 	ocmd, _ := ovndbapi.LSAdd("ls1")
 	ovndbapi.Execute(ocmd)
 	ocmd, _ = ovndbapi.LSPAdd("ls1", "test")
-	ovndbapi.Execute(ocmd)
+	ocmd.Execute()
 	ocmd, _ = ovndbapi.LSPSetAddress("test", "12:34:56:78:90 10.10.10.1")
 	ovndbapi.Execute(ocmd)
 
@@ -58,13 +62,13 @@ func main() {
 		fmt.Printf("%v\n", *lp)
 	}
 
-	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchFirst, "drop", 1001, nil, true, "")
+	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchFirst, "drop", 1001, nil, true, "", "")
 	ovndbapi.Execute(ocmd)
 
-	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchSecond, "drop", 1001, map[string]string{"A": "a", "B": "b"}, false, "")
+	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchSecond, "drop", 1001, map[string]string{"A": "a", "B": "b"}, false, "", "")
 	ovndbapi.Execute(ocmd)
 
-	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchSecond, "drop", 1001, map[string]string{"A": "b", "B": "b"}, false, "")
+	ocmd, _ = ovndbapi.ACLAdd("ls1", "to-lport", matchSecond, "drop", 1001, map[string]string{"A": "b", "B": "b"}, false, "", "")
 	ovndbapi.Execute(ocmd)
 
 	acls, _ := ovndbapi.ACLList("ls1")

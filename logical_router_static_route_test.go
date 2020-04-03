@@ -13,6 +13,7 @@ const (
 )
 
 func TestLogicalRouterStaticRoute(t *testing.T) {
+	ovndbapi := getOVNClient(DBNB)
 	cmd, err := ovndbapi.LRAdd(LR2, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -93,4 +94,9 @@ func TestLogicalRouterStaticRoute(t *testing.T) {
 		t.Fatalf("lr not deleted %v", lrs)
 	}
 
+	// verify static route list for non-existing routers
+	lrsr, err = ovndbapi.LRSRList(FAKENOROUTER)
+	if err != nil {
+		assert.EqualError(t, ErrorNotFound, err.Error())
+	}
 }

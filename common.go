@@ -25,7 +25,8 @@ const (
 )
 
 const (
-	dbNB string = "OVN_Northbound"
+	DBNB string = "OVN_Northbound"
+	DBSB string = "OVN_Southbound"
 )
 
 const (
@@ -48,6 +49,8 @@ const (
 	tableDNS                      string = "DNS"
 	tableSSL                      string = "SSL"
 	tableGatewayChassis           string = "Gateway_Chassis"
+	tableChassis                  string = "Chassis"
+	tableEncap                    string = "Encap"
 )
 
 var tablesOrder = []string{
@@ -70,4 +73,6 @@ var tablesOrder = []string{
 	tablePortGroup,
 	tableLogicalSwitch,
 	tableLogicalRouter,
+	tableChassis,
+	tableEncap,
 }

@@ -28,6 +28,7 @@ const (
 )
 
 func TestLSLoadBalancer(t *testing.T) {
+	ovndbapi := getOVNClient(DBNB)
 	// create Switch
 	t.Logf("Adding  %s to OVN", LSW1)
 	cmd, err := ovndbapi.LSAdd(LSW1)
@@ -114,4 +115,9 @@ func TestLSLoadBalancer(t *testing.T) {
 		t.Fatalf("err executing command:%v", err)
 	}
 
+	// verify LB list for non-existing switch
+	_, err = ovndbapi.LSLBList(FAKENOSWITCH)
+	if err != nil {
+		assert.EqualError(t, ErrorNotFound, err.Error())
+	}
 }

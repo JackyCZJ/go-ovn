@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var ovndbapi Client
+
 func findAS(name string) bool {
 	as, err := ovndbapi.ASList()
 	if err != nil {
@@ -61,6 +63,7 @@ func addressSetCmp(asname string, targetvalue []string) bool {
 }
 
 func TestAddressSet(t *testing.T) {
+	ovndbapi = getOVNClient(DBNB)
 	addressList := []string{"127.0.0.1"}
 	var cmd *OvnCommand
 	var err error
