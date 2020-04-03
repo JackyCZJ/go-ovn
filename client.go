@@ -17,12 +17,13 @@
 package goovn
 
 import (
-	"sync"
-
+	"fmt"
 	"github.com/ebay/libovsdb"
+	"sync"
 )
 
-// Client ovnnb client
+// Client ovnnb/sb client
+// Note: We can create different clients for ovn nb and sb each in future.
 type Client interface {
 	// Get logical switch by name
 	LSGet(ls string) ([]*LogicalSwitch, error)
@@ -36,6 +37,8 @@ type Client interface {
 	LSExtIdsAdd(ls string, external_ids map[string]string) (*OvnCommand, error)
 	// Del external_ids from logical_switch
 	LSExtIdsDel(ls string, external_ids map[string]string) (*OvnCommand, error)
+	// Link logical switch to router
+	LinkSwitchToRouter(lsw, lsp, lr, lrp, lrpMac string, networks []string, externalIds map[string]string) (*OvnCommand, error)
 
 	// Add logical port PORT on SWITCH
 	LSPAdd(ls string, lsp string) (*OvnCommand, error)
@@ -56,7 +59,7 @@ type Client interface {
 	LSLBList(ls string) ([]*LoadBalancer, error)
 
 	// Add ACL
-	ACLAdd(ls, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string) (*OvnCommand, error)
+	ACLAdd(ls, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error)
 	// Delete acl
 	ACLDel(ls, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error)
 	// Get all acl by lswitch
@@ -148,7 +151,11 @@ type Client interface {
 	// Get NAT List by Logical Router
 	LRNATList(lr string) ([]*NAT, error)
 	// Add Meter with a Meter Band
+<<<<<<< HEAD
 	MeterAdd(name, action string, rate int, unit string, external_ids map[string]string, burst ...int) (*OvnCommand, error)
+=======
+	MeterAdd(name, action string, rate int, unit string, external_ids map[string]string, burst int) (*OvnCommand, error)
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 	// Deletes meters
 	MeterDel(name ...string) (*OvnCommand, error)
 	// List Meters
@@ -158,9 +165,22 @@ type Client interface {
 	// Exec command, support mul-commands in one transaction.
 	Execute(cmds ...*OvnCommand) error
 
+	// Add chassis with given name
+	ChassisAdd(name string, hostname string, etype []string, ip string, external_ids map[string]string,
+		transport_zones []string, vtep_lswitches []string) (*OvnCommand, error)
+	// Delete chassis with given name
+	ChassisDel(chName string) (*OvnCommand, error)
+	// Get chassis by hostname or name
+	ChassisGet(chname string) ([]*Chassis, error)
+
+	// Get encaps by chassis name
+	EncapList(chname string) ([]*Encap, error)
+
 	// Close connection to OVN
 	Close() error
 }
+
+var _ Client = &ovndb{}
 
 type ovndb struct {
 	client       *libovsdb.OvsdbClient
@@ -169,13 +189,26 @@ type ovndb struct {
 	tranmutex    sync.Mutex
 	signalCB     OVNSignal
 	disconnectCB OVNDisconnectedCallback
+	db           string
 }
 
 func NewClient(cfg *Config) (Client, error) {
+	db := cfg.Db
+	// db string should strictly be OVN_Northbound or OVN_Southbound
+	switch db {
+	case DBNB, DBSB:
+		break
+	case "":
+		db = DBNB
+	default:
+		return nil, fmt.Errorf("Valid db names are: %s and %s", DBNB, DBSB)
+	}
+
 	imp := &ovndb{
 		cache:        make(map[string]map[string]libovsdb.Row),
 		signalCB:     cfg.SignalCB,
 		disconnectCB: cfg.DisconnectCB,
+		db:           db,
 	}
 
 	c, err := libovsdb.Connect(cfg.Addr, cfg.TLSConfig)
@@ -184,7 +217,7 @@ func NewClient(cfg *Config) (Client, error) {
 	}
 	imp.client = c
 
-	initial, err := imp.client.MonitorAll(dbNB, "")
+	initial, err := imp.client.MonitorAll(db, "")
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +233,23 @@ func NewClient(cfg *Config) (Client, error) {
 func (c *ovndb) Close() error {
 	c.client.Disconnect()
 	return nil
+}
+
+func (c *ovndb) EncapList(chname string) ([]*Encap, error) {
+	return c.encapListImp(chname)
+}
+
+func (c *ovndb) ChassisGet(name string) ([]*Chassis, error) {
+	return c.chassisGetImp(name)
+}
+
+func (c *ovndb) ChassisAdd(name string, hostname string, etype []string, ip string,
+	external_ids map[string]string, transport_zones []string, vtep_lswitches []string) (*OvnCommand, error) {
+	return c.chassisAddImp(name, hostname, etype, ip, external_ids, transport_zones, vtep_lswitches)
+}
+
+func (c *ovndb) ChassisDel(name string) (*OvnCommand, error) {
+	return c.chassisDelImp(name)
 }
 
 func (c *ovndb) LSAdd(ls string) (*OvnCommand, error) {
@@ -224,6 +274,10 @@ func (c *ovndb) LSExtIdsDel(ls string, external_ids map[string]string) (*OvnComm
 
 func (c *ovndb) LSPAdd(ls string, lsp string) (*OvnCommand, error) {
 	return c.lspAddImp(ls, lsp)
+}
+
+func (c *ovndb) LinkSwitchToRouter(lsw, lsp, lr, lrp, lrpMac string, networks []string, externalIds map[string]string) (*OvnCommand, error) {
+	return c.linkSwitchToRouterImp(lsw, lsp, lr, lrp, lrpMac, networks, externalIds)
 }
 
 func (c *ovndb) LSPDel(lsp string) (*OvnCommand, error) {
@@ -330,8 +384,8 @@ func (c *ovndb) LBDel(name string) (*OvnCommand, error) {
 	return c.lbDelImp(name)
 }
 
-func (c *ovndb) ACLAdd(ls, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string) (*OvnCommand, error) {
-	return c.aclAddImp(ls, direct, match, action, priority, external_ids, logflag, meter)
+func (c *ovndb) ACLAdd(ls, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error) {
+	return c.aclAddImp(ls, direct, match, action, priority, external_ids, logflag, meter, severity)
 }
 
 func (c *ovndb) ACLDel(ls, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error) {
@@ -426,8 +480,13 @@ func (c *ovndb) LRNATList(lr string) ([]*NAT, error) {
 	return c.lrNatListImp(lr)
 }
 
+<<<<<<< HEAD
 func (c *ovndb) MeterAdd(name, action string, rate int, unit string, external_ids map[string]string, burst ...int) (*OvnCommand, error) {
 	return c.meterAddImp(name, action, rate, unit, external_ids, burst...)
+=======
+func (c *ovndb) MeterAdd(name, action string, rate int, unit string, external_ids map[string]string, burst int) (*OvnCommand, error) {
+	return c.meterAddImp(name, action, rate, unit, external_ids, burst)
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 }
 
 func (c *ovndb) MeterDel(name ...string) (*OvnCommand, error) {

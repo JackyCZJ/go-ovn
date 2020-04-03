@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * Copyright (c) 2019 eBay Inc.
  *
@@ -13,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+=======
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 package goovn
 
 import (
@@ -38,6 +41,7 @@ type MeterBand struct {
 	ExternalIds map[interface{}]interface{} `json:"external_ids"`
 }
 
+<<<<<<< HEAD
 /*
 The unit specifies the unit for the rate argument; valid  values
 are  kbps and pktps for kilobits per second and packets per sec‐
@@ -52,6 +56,8 @@ the other commands support meters with multiple bands.
 
 */
 
+=======
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 func (odbi *ovndb) rowToMeter(uuid string) *Meter {
 	cacheMeter, ok := odbi.cache[tableMeter][uuid]
 	if !ok {
@@ -82,6 +88,7 @@ func (odbi *ovndb) rowToMeterBand(uuid string) (*MeterBand, error) {
 	return meterBand, nil
 }
 
+<<<<<<< HEAD
 /*
 ovn-nbctl only supports adding a meter with a single  band,  but
 the other commands support meters with multiple bands.
@@ -95,12 +102,21 @@ func (odbi *ovndb) meterAddImp(name, action string, rate int, unit string, exter
 
 	//Names  that  start  with "__" (two underscores) are reserved for
 	//internal use by OVN, so ovn-nbctl does not allow adding them.
+=======
+func (odbi *ovndb) meterAddImp(name, action string, rate int, unit string, external_ids map[string]string, burst int) (*OvnCommand, error) {
+
+	//Names  that  start  with "__" (two underscores) are reserved for
+	//internal use by OVN.
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 	if strings.HasPrefix(name, "__") {
 		return nil, ErrorOption
 	}
 
 	// The only supported action is drop.
+<<<<<<< HEAD
 	// If add with wrong option , libovsdb won't accept but doesn't have any feedback. So add some judgment is necessary.
+=======
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 	if action != "drop" {
 		return nil, ErrorOption
 	}
@@ -136,6 +152,7 @@ func (odbi *ovndb) meterAddImp(name, action string, rate int, unit string, exter
 	mbRow["action"] = action
 
 	//rate must be in the range 1...4294967295
+<<<<<<< HEAD
 	if rate < 0 || rate > math.MaxInt32 {
 		return nil, ErrorSchema
 	}
@@ -147,6 +164,16 @@ func (odbi *ovndb) meterAddImp(name, action string, rate int, unit string, exter
 			return nil, ErrorSchema
 		}
 		mbRow["burst_size"] = burst[0]
+=======
+	if rate < 1 || rate > math.MaxInt32 {
+		return nil, ErrorOption
+	}
+	mbRow["rate"] = rate
+
+	//burst must be in the range 0...4294967295
+	if burst >= 0 && burst <= math.MaxInt32 {
+		mbRow["burst_size"] = burst
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 	}
 
 	if external_ids != nil {
@@ -193,6 +220,7 @@ func (odbi *ovndb) meterDelImp(name ...string) (*OvnCommand, error) {
 				return nil, err
 			}
 		}
+<<<<<<< HEAD
 	case 1:
 		operations, err = odbi.singleMeterDel(name[0], operations)
 		if err != nil {
@@ -200,6 +228,15 @@ func (odbi *ovndb) meterDelImp(name ...string) (*OvnCommand, error) {
 		}
 	default:
 		return nil, ErrorOption
+=======
+	default:
+		for i := 0; i < len(name); i++ {
+			operations, err = odbi.singleMeterDel(name[i], operations)
+			if err != nil {
+				return nil, err
+			}
+		}
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 	}
 	return &OvnCommand{operations, odbi, make([][]map[string]interface{}, len(operations))}, nil
 
@@ -241,6 +278,21 @@ func (odbi *ovndb) meterBandsListImp() ([]*MeterBand, error) {
 	return ListMeterBands, nil
 }
 
+<<<<<<< HEAD
+=======
+func (odbi *ovndb) meterFind(name string) bool {
+	odbi.cachemutex.RLock()
+	defer odbi.cachemutex.RUnlock()
+	row := make(OVNRow)
+	row["name"] = name
+	meterUUID := odbi.getRowUUID(tableMeter, row)
+	if len(meterUUID) == 0 {
+		return false
+	}
+	return true
+}
+
+>>>>>>> 20be12848571a13b5c53c7a664f21a70beee615a
 func (odbi *ovndb) singleMeterDel(name string, operations []libovsdb.Operation) ([]libovsdb.Operation, error) {
 	meterName := name
 	row := make(OVNRow)
